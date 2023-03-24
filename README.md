@@ -1,5 +1,7 @@
 # Dynamic Link Prediction Evaluation Strategies
 
+This repository contain all code to regenerate the results of our work: "Dynamic Link Prediction Evaluation".
+
 
   
 ### Acknowledgement
