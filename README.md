@@ -1,6 +1,6 @@
 # Dynamic Link Prediction Evaluation Strategies
 
-This repository contain all code to regenerate the results of our work: "Dynamic Link Prediction Evaluation".
+This repository contains all necessary codes to regenerate the results of our work on investigation of different strategies of dynamic link prediction evaluation.
 
 
   
