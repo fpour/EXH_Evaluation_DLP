@@ -131,7 +131,11 @@ def train_val_1(train_val_data, model, bs, epochs, criterion, optimizer, early_s
             size = len(src_l_cut)
 
             # sample negative edges
-            src_l_fake, dst_l_fake = train_rand_sampler.sample(size)
+            neg_hist_sources, neg_hist_destinations, neg_rnd_sources, neg_rnd_destinations = train_rand_sampler.sample(size, 
+                                                                                                                       ts_l_cut[0], 
+                                                                                                                       ts_l_cut[-1])
+            src_l_fake = np.concatenate([neg_hist_sources, neg_rnd_sources], axis=0)
+            dst_l_fake = np.concatenate([neg_hist_destinations, neg_rnd_destinations], axis=0)
 
             # feed in the data and learn from the error
             optimizer.zero_grad()

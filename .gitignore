@@ -127,3 +127,32 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# local files
+EXH_dlp_stats/
+
+TGN/scripts/
+TGN/log/
+TGN/data/
+TGN/saved_models/
+TGN/saved_checkpoints/
+TGN/LP_stats/
+TGN/outlog/
+
+TGAT/scripts/
+TGAT/log/
+TGAT/data/
+TGAT/saved_models/
+TGAT/saved_checkpoints/
+TGAT/LP_stats/
+TGAT/outlog/
+
+CAW/scripts/
+CAW/log/
+CAW/data/
+CAW/best_models/
+CAW/saved_checkpoints/
+CAW/LP_stats/
+CAW/outlog/
+
+

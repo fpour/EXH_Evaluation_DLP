@@ -11,7 +11,7 @@ def set_up_logger(args, sys_argv):
     n_degree, n_layer = process_sampling_numbers(args.n_degree, args.n_layer)
     n_degree = [str(n) for n in n_degree]
     # runtime_id = '{}-{}-{}-{}-{}-{}-{}'.format(str(time.time()), args.data, args.mode[0], args.agg, n_layer, 'k'.join(n_degree), args.pos_dim)
-    runtime_id = 'caw_{}_{}_{}_{}_{}_{}'.format(args.data, args.neg_sample, args.agg, n_layer, 'k'.join(n_degree), args.pos_dim)
+    runtime_id = 'caw_{}_{}_{}_{}_{}_{}'.format(args.data, args.tr_neg_sample, args.agg, n_layer, 'k'.join(n_degree), args.pos_dim)
     logging.basicConfig(level=logging.INFO, filemode='w', force=True)
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
