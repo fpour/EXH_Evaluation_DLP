@@ -24,7 +24,9 @@ However, the negative edges are sampled from the set of edges observed during tr
 Considering how the negative edges are sampled in HIST setting, this approach cannot be employed for performance evaluation in inductive dynamic link prediction.
 For the transductive dynamic link prediction, the distribution of different types of edges is illustrated in the following figure.
 
-<p align="center"><img src="figures/test_dist_STD_Hist_trans.png" width="45%">
+| <p align="center"><img src="figures/test_dist_STD_Hist_trans.png" width="55%"> |
+:-------------------------:|
+	STD – HIST – transductive
 
 <!-- | <p align="center"><img src="figures/test_dist_STD_Hist_trans.png" width="50%"> | <span style="color:black">**NA**</span>
 :-------------------------:|:-------------------------:	
