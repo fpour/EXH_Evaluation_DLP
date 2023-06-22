@@ -8,6 +8,7 @@ import pandas as pd
 import random
 
 INIT_FEAT_DIM = 172  # pass the memory_dimension!!! It does not make sense to have this value hard-codded!
+PARTIAL_PATH = './data'
 
 class Data:
     def __init__(self, sources, destinations, timestamps, edge_idxs, labels):
@@ -25,13 +26,13 @@ def get_data(dataset_name, args, logger=None, verbose=True, test_nn_ratio=0.1):
     # First, set the seed!
     random.seed(args.seed)
     ### Load data and generate training, validation, and test split
-    graph_df = pd.read_csv('./data/ml_{}.csv'.format(dataset_name))
+    graph_df = pd.read_csv('{}/ml_{}.csv'.format(PARTIAL_PATH, dataset_name))
     if args.data_usage < 1:
         g_df = g_df.iloc[:int(args.data_usage * g_df.shape[0])]
         logger.info('Use partial data, ratio: {}'.format(args.data_usage))
 
-    edge_features = np.load('./data/ml_{}.npy'.format(dataset_name))
-    node_features = np.load('./data/ml_{}_node.npy'.format(dataset_name))
+    edge_features = np.load('{}/ml_{}.npy'.format(PARTIAL_PATH, dataset_name))
+    node_features = np.load('{}/ml_{}_node.npy'.format(PARTIAL_PATH, dataset_name))
 
     sources = graph_df.u.values
     destinations = graph_df.i.values

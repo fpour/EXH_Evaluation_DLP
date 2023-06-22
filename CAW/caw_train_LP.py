@@ -43,7 +43,9 @@ NGH_CACHE = args.ngh_cache
 VERBOSITY = args.verbosity
 AGG = args.agg
 SEED = args.seed
-NEG_SAMPLE = args.neg_sample
+EGO_SNAP = args.ego_snap
+TR_NEG_SAMPLE = args.tr_neg_sample
+TS_NEG_SAMPLE = args.ts_neg_sample
 TR_RND_NE_RATIO = args.tr_rnd_ne_ratio
 TS_RND_NE_RATIO = args.ts_rnd_ne_ratio
 
@@ -80,11 +82,18 @@ ngh_finders = partial_ngh_finder, full_ngh_finder
 
 # ====================
 # create random samplers to generate train/val/test instances
-train_rand_sampler = RandEdgeSampler(train_data.sources, train_data.destinations)
-val_rand_sampler = RandEdgeSampler(full_data.sources, full_data.destinations, seed=0)
-nn_val_rand_sampler = RandEdgeSampler(new_node_val_data.sources, new_node_val_data.destinations, seed=1)
-test_rand_sampler = RandEdgeSampler(full_data.sources, full_data.destinations, seed=2)
-nn_test_rand_sampler = RandEdgeSampler(new_node_test_data.sources, new_node_test_data.destinations, seed=3)
+train_rand_sampler = RandEdgeSampler_NE(train_data.sources, train_data.destinations, train_data.timestamps,
+                                     val_data.timestamps[-1], NS=TR_NEG_SAMPLE, rnd_sample_ratio=TR_RND_NE_RATIO)
+val_rand_sampler = RandEdgeSampler_NE(full_data.sources, full_data.destinations, full_data.timestamps,
+                                      val_data.timestamps[-1], NS=TR_NEG_SAMPLE, seed=0, rnd_sample_ratio=TR_RND_NE_RATIO)
+nn_val_rand_sampler = RandEdgeSampler_NE(new_node_val_data.sources, new_node_val_data.destinations, new_node_val_data.timestamps,
+                                        val_data.timestamps[-1], NS=TR_NEG_SAMPLE, seed=1, rnd_sample_ratio=TR_RND_NE_RATIO)
+
+test_rand_sampler = RandEdgeSampler_NE(full_data.sources, full_data.destinations, full_data.timestamps,
+                                       val_data.timestamps[-1], NS=TS_NEG_SAMPLE, seed=2, rnd_sample_ratio=TS_RND_NE_RATIO)
+nn_test_rand_sampler = RandEdgeSampler_NE(new_node_test_data.sources, new_node_test_data.destinations,
+                                          new_node_test_data.timestamps, val_data.timestamps[-1], NS=TS_NEG_SAMPLE,
+                                          seed=3, rnd_sample_ratio=TS_RND_NE_RATIO)
 
 # ====================
 # multiprocessing memory setting
@@ -100,19 +109,25 @@ device = torch.device(device_string)
 # the main flow...
 for i_run in range(args.n_runs):
 
-    # stats file-name initialization
-    ts_stats_partial_path = f"pred_stats/{DATA}/"
-    ts_stats_partial_name = f"CAW_{DATA}_{NEG_SAMPLE}_{i_run}"
-    ts_stats_path_trans = f'{ts_stats_partial_path}/{ts_stats_partial_name}_trans'  # Old nodes
-    ts_stats_path_induc = f'{ts_stats_partial_path}/{ts_stats_partial_name}_induc'  # New nodes
-
-
     start_time_run = time.time()
     logger.info("*"*50)
     logger.info("********** Run {} starts. **********".format(i_run))
 
+    # stats file name initialization
+    ts_stats_partial_path = f"LP_stats/{DATA}/"
+    ts_stats_partial_name = f"CAW_{DATA}_TR_{TR_NEG_SAMPLE}_TS_{TS_NEG_SAMPLE}_{i_run}"
+    # original standard evaluation statistis
+    ts_stats_path_trans = f'{ts_stats_partial_path}/{ts_stats_partial_name}_trans'  # Old nodes
+    ts_stats_path_induc = f'{ts_stats_partial_path}/{ts_stats_partial_name}_induc'  # New nodes
+    ts_STD_pred_trans = "LP_stats/STD_pred_TRANS.csv"
+    ts_STD_pred_induc = "LP_stats/STD_pred_INDUC.csv"
+    # snapshot-based evaluation statistics
+    if EGO_SNAP:
+        ts_stats_path_trans_SNAPSHOT = f'{ts_stats_partial_path}/snapshots/{ts_stats_partial_name}_trans'
+        ts_stats_path_induc_SNAPTHOT = f'{ts_stats_partial_path}/snapshots/{ts_stats_partial_name}_induc'
+
     # reset the seed of the train_rand_sampler
-    train_rand_sampler.reset_random_state(seed=i_run)
+    train_rand_sampler.reset_random_state(new_seed=i_run)
 
     # model initialization
     cawn = CAWN(node_features, edge_features, agg=AGG,

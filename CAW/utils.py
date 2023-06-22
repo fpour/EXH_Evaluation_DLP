@@ -61,15 +61,14 @@ def get_args():
     parser.add_argument('--val_ratio', type=float, default=0.15, help='Ratio of the validation data.')
     parser.add_argument('--test_ratio', type=float, default=0.15, help="Ratio of the test data.")
     parser.add_argument('--tr_rnd_ne_ratio', type=float, default=1.0,
-                        help='Ratio of random negative edges sampled during training.')
+                        help='Ratio of RANDOM negative edges sampled during training.')
     parser.add_argument('--ts_rnd_ne_ratio', type=float, default=1.0,
-                        help='Ratio of random negative edges sampled during TEST phase.')
-    parser.add_argument('--ts_rnd_ne_ratio_test', type=float, default=0.0,
-                        help='Ratio of random negative edges sampled during TEST phase.')
-    parser.add_argument('--neg_sample', type=str, default='haphaz_rnd', choices=['rnd', 'hist', 'induc', 'haphaz_rnd'],
-                        help='Strategy for the edge negative sampling.')
-    parser.add_argument('--neg_sample_test', type=str, default='hist', choices=['rnd', 'hist', 'induc', 'haphaz_rnd'],
-                        help='Strategy for the edge negative sampling ONLY for TEST.')
+                        help='Ratio of RANDOM negative edges sampled during TEST phase.')
+    parser.add_argument('--tr_neg_sample', type=str, default='haphaz_rnd',  # choices=['rnd', 'hist', 'induc', 'haphaz_rnd']
+                        help='Strategy for the edge negative sampling at training.')
+    parser.add_argument('--ts_neg_sample', type=str, default='haphaz_rnd',   # choices=['rnd', 'hist', 'induc', 'haphaz_rnd'],
+                        help='Strategy for the edge negative sampling at test.')
+    parser.add_argument('--ego_snap', action='store_true', help='Whether to evaluate in EGO-SNAPSHOT manner')
 
     try:
         args = parser.parse_args()
