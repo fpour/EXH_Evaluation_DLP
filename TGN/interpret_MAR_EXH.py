@@ -15,7 +15,6 @@ from utils.utils import set_random_seed
 from interpret_res_LP_utils import generate_snapshot_edge_status, gen_meta_info_for_eval
 
 
-num_entities_neg = 100
 
 def get_args():
     parser = argparse.ArgumentParser('*** DLP - EXH - MAR ***')
@@ -58,7 +57,7 @@ def invoke_stats_generation(partial_path, partial_filename, stats_filename, full
     stats_list = []
     for run_idx in range(N_RUNS):
         for snap_idx in range(NUM_SNAPSHOTS[DATA]):
-            iter_partial_filename = f"{partial_path}/{DATA}_snapshots/{MODEL_NAME}_{partial_filename}_{run_idx}_{LP_MODE}_{snap_idx}"
+            iter_partial_filename = f"{partial_path}/{DATA}_snapshots/{partial_filename}_{run_idx}_{LP_MODE}_{snap_idx}"
             if os.path.isfile(f"{iter_partial_filename}_src.npy"):  # if the current snapshot info exists...
                 pred_dict = {'sources': np.load(f"{iter_partial_filename}_src.npy"),
                             'destinations': np.load(f"{iter_partial_filename}_dst.npy"),
@@ -72,6 +71,8 @@ def invoke_stats_generation(partial_path, partial_filename, stats_filename, full
                 stats_snapshot_dict['LP_MODE'] = LP_MODE
                 stats_snapshot_dict['TR_NEG_SAMPLE'] = TR_NEG_SAMPLE
                 stats_snapshot_dict['TS_NEG_SAMPLE'] = TS_NEG_SAMPLE
+                stats_snapshot_dict['run_idx'] = run_idx
+                stats_snapshot_dict['snap_idx'] = snap_idx
                 stats_list.append(stats_snapshot_dict)
 
                 if run_idx == 0:
@@ -83,6 +84,7 @@ def invoke_stats_generation(partial_path, partial_filename, stats_filename, full
                         with open(stats_filename, 'w') as writer:
                             writer.write(stats_header)
             else:
+                print(f"DEBUG: File name: {iter_partial_filename}_src.npy")
                 print(f"INFO: DATA: {DATA}, LP_MODE: {LP_MODE}: Run {run_idx}, Snapshot {snap_idx} does not exist!")
         
     stats_df = pd.read_csv(stats_filename)
@@ -121,106 +123,54 @@ def generate_MAR_stats(res_df, verbose=False):
     """
     generate MAR statistics given the results data frame
     """
+    all_pos_e_rank = []
     distinct_src_list = np.unique(np.array(res_df['source']))
     for uniq_src in distinct_src_list:
         src_all_edges = res_df.loc[res_df['source'] == uniq_src]
         src_all_edges.sort_values(by="pred_score", ascending=False)
-
-    
-    !!! I was here!
-
-    stats_dic = {}
-    # some statistics about the test set edge list
-    # count number of repeated edges in each categories
-    pos_hist_e = res_df.loc[(res_df['hist'] == 1) & (res_df['label'] == 1)]
-    pos_new_e = res_df.loc[(res_df['hist'] == 0) & (res_df['label'] == 1)]
-    neg_hist_e = res_df.loc[(res_df['hist'] == 1) & (res_df['label'] == 0)]
-    neg_new_e = res_df.loc[(res_df['hist'] == 0) & (res_df['label'] == 0)]
-
-    stats_dic['n_pos_hist'] = pos_hist_e.shape[0]
-    stats_dic['n_pos_new'] = pos_new_e.shape[0]
-    stats_dic['n_neg_hist'] = neg_hist_e.shape[0]
-    stats_dic['n_neg_new'] = neg_new_e.shape[0]
-
-    # compute the number of repetitions of the same edges through test phase
-    stats_dic['n_repeated_pos_hist'] = count_repetition(pos_hist_e)
-    stats_dic['n_repeated_pos_new'] = count_repetition(pos_new_e)
-    stats_dic['n_repeated_neg_hist'] = count_repetition(neg_hist_e)
-    stats_dic['n_repeated_neg_new'] = count_repetition(neg_new_e)
-
-    if EVAL_MODE == 'snapshot':
-        print("INFO: *** SNAPSHOT-based ***")
-        print("INFO: NOTICE: Only Distinct edges are used for performance evaluation!")
-        res_df = res_df.loc[res_df['use_in_eval'] == 1]  # only the one that we want to use for evaluations
-
-        stats_dic['n_pos_hist_used_in_eval'] = res_df.loc[(res_df['hist'] == 1) & (res_df['label'] == 1)].shape[0]
-        stats_dic['n_pos_new_used_in_eval'] = res_df.loc[(res_df['hist'] == 0) & (res_df['label'] == 1)].shape[0]
-        stats_dic['n_neg_hist_used_in_eval'] = res_df.loc[(res_df['hist'] == 1) & (res_df['label'] == 0)].shape[0]
-        stats_dic['n_neg_new_used_in_eval'] = res_df.loc[(res_df['hist'] == 0) & (res_df['label'] == 0)].shape[0]
-
-
-        print("INFO: Some statistics about the snapshot:")
-        print(f"\tINFO: POS_HIST: Total: {stats_dic['n_pos_hist']}\tRepeated: {stats_dic['n_repeated_pos_hist']}\tUsed in eval.: {stats_dic['n_pos_hist_used_in_eval']}")
-        print(
-            f"\tINFO: POS_LNEW: Total: {stats_dic['n_pos_new']}\tRepeated: {stats_dic['n_repeated_pos_new']}\tUsed in eval.: {stats_dic['n_pos_new_used_in_eval']}")
-        print(
-            f"\tINFO: NEG_HIST: Total: {stats_dic['n_neg_hist']}\tRepeated: {stats_dic['n_repeated_neg_hist']}\tUsed in eval.: {stats_dic['n_neg_hist_used_in_eval']}")
-        print(
-            f"\tINFO: NEG_LNEW: Total: {stats_dic['n_neg_new']}\tRepeated: {stats_dic['n_repeated_neg_new']}\tUsed in eval.: {stats_dic['n_neg_new_used_in_eval']}")
-
-    # divide into historical and new edges
-    # historical edges
-    hist_e_pred = np.array(res_df.loc[res_df['hist'] == 1, 'pred_score'].tolist())
-    hist_e_label = np.array(res_df.loc[res_df['hist'] == 1, 'label'].tolist())
-    stats_dic['hist_e_PRAUC'], stats_dic['hist_e_AUC'], stats_dic['hist_e_AP'] = compute_metrics(hist_e_label, hist_e_pred)
-
-    # new edges
-    new_e_pred = np.array(res_df.loc[res_df['hist'] == 0, 'pred_score'].tolist())
-    new_e_label = np.array(res_df.loc[res_df['hist'] == 0, 'label'].tolist())
-    stats_dic['new_e_PRAUC'], stats_dic['new_e_AUC'], stats_dic['new_e_AP'] = compute_metrics(new_e_label, new_e_pred)
-
-    # calculate GMAUC
-    try: 
-        stats_dic['GMAUC'] = np.sqrt(((stats_dic['new_e_PRAUC'] - (float(stats_dic['n_pos_new']) /
-                                                               float((stats_dic['n_pos_new'] + stats_dic['n_neg_new'])))) /
-                                  (1 - (float(stats_dic['n_pos_new']) / (float(stats_dic['n_pos_new']
-                                                                                 + stats_dic['n_neg_new']))))) * 2 * (
-                                         stats_dic['hist_e_AUC'] - 0.5))
-    except ZeroDivisionError:
-        stats_dic['GMAUC'] = 'NA'
-
-    # all categories together
-    all_e_label = np.array(res_df['label'].tolist())
-    all_e_pred = np.array(res_df['pred_score'].tolist())
-    stats_dic['all_e_PRAUC'], stats_dic['all_e_AUC'], stats_dic['all_e_AP'] = compute_metrics(all_e_label, all_e_pred)
-    # stats_dic['all_e_AP'] = average_precision_score(all_e_label, all_e_pred)
-
+        pos_e_indices = np.array(list(np.where(src_all_edges["label"] == 1)[0]))
+        src_pos_e_ranks = pos_e_indices + 1  # because rank should starts from 1, not 0
+        all_pos_e_rank.append(src_pos_e_ranks)
+    all_pos_e_rank = np.concatenate(all_pos_e_rank, axis=0)
+    MAR = np.mean(all_pos_e_rank)
     if verbose:
-        # print out the results
-        print("--------------------------------------------------------------------")
-        print(f"NUM_POS_HIST: {stats_dic['n_pos_hist']}; \tNUM_REPETITION: {stats_dic['n_repeated_pos_hist']}")
-        print(f"NUM_NEG_HIST: {stats_dic['n_neg_hist']}; \tNUM_REPETITION: {stats_dic['n_repeated_neg_hist']}")
-        print(f"NUM_POS_NEW: {stats_dic['n_pos_new']}; \tNUM_REPETITION: {stats_dic['n_repeated_pos_new']}")
-        print(f"NUM_NEG_NEW: {stats_dic['n_neg_new']}; \tNUM_REPETITION: {stats_dic['n_repeated_neg_new']}")
-        print("*** HISTORICAL EDGES:")
-        print(f"\tHIST_AUC: {stats_dic['hist_e_AUC']}, HIST_PRAUC: {stats_dic['hist_e_PRAUC']}")
-        print("*** NEW EDGES:")
-        print(f"\tNEW_AUC: {stats_dic['new_e_AUC']}, NEW_PRAUC: {stats_dic['new_e_PRAUC']}")
-        print("*** Combined Metric (NEW_PRAUC & HIST_AUC):")
-        print(f"\tGMAUC: {stats_dic['GMAUC']}")
-        print("*** ALL TEST EDGES TOGETHER:")
-        print(f"\tALL_TEST_AUC: {stats_dic['all_e_AUC']}, ALL_TEST_PRAUC: {stats_dic['all_e_PRAUC']}, ALL_TEST_AP: {stats_dic['all_e_AP']}")
-        print("--------------------------------------------------------------------")
+        print("INFO: MAR: {}".format(MAR))
 
-    return stats_dic
+    stats_dict = {'MAR': MAR,
+                    }
+    return stats_dict
 
+
+def gen_avg_perf(stats_df_filename, avg_stats_df_filename, DATA, LP_MODE, TR_NEG_SAMPLE, TS_NEG_SAMPLE):
+    """
+    generate average statistics across runs and snapshots
+    """
+    all_cols_w_values = ['MAR',
+                         ]
+    stats_df = pd.read_csv(stats_df_filename)
+    setting_res = stats_df.loc[((stats_df['DATA'] == DATA) & (stats_df['LP_MODE'] == LP_MODE) & 
+                                (stats_df['TR_NEG_SAMPLE'] == TR_NEG_SAMPLE) & (stats_df['TS_NEG_SAMPLE'] == TS_NEG_SAMPLE)),
+                                all_cols_w_values]
+    setting_avg_dict = dict(setting_res.mean())
+    setting_avg_dict['DATA'] = DATA
+    setting_avg_dict['LP_MODE'] = LP_MODE
+    setting_avg_dict['TR_NEG_SAMPLE'] = TR_NEG_SAMPLE
+    setting_avg_dict['TS_NEG_SAMPLE'] = TS_NEG_SAMPLE
+
+    if not os.path.isfile(avg_stats_df_filename):
+        avg_stats_df = pd.DataFrame([setting_avg_dict])
+        avg_stats_df.to_csv(avg_stats_df_filename, index=False)
+    else:
+        avg_stats_df = pd.read_csv(avg_stats_df_filename)
+        avg_stats_df = pd.concat([avg_stats_df, pd.DataFrame([setting_avg_dict])])
+        avg_stats_df.to_csv(avg_stats_df_filename, index=False)
 
 
 def main():
     """
     execution command:
-        python interpret_scores_LP.py --seed 123 --n_runs 5 --eval_mode std --lp_mode trans --data canVote --prefix tgn_attn --opt gen
-        python interpret_scores_LP.py --seed 123 --n_runs 1 --eval_mode std --lp_mode trans --data canVote --prefix tgn_attn --opt OGB --ts_neg_sample hitsK
+        python interpret_MAR_EXH.py --seed 123 --n_runs 5 --lp_mode trans --data canVote --prefix tgn_attn
+        
     """
 
     args, _ = get_args()
@@ -245,18 +195,24 @@ def main():
                     'wikipedia': 10,
                     }
 
-    partial_path = f"./EXH_dlp_stats/{MODEL_NAME}/"
-    partial_name = f"{MODEL_NAME}_{DATA}_TR_{TR_NEG_SAMPLE}_TS_{TS_NEG_SAMPLE}"
+    partial_path = f"../EXH_dlp_stats/{MODEL_NAME}/"
+    partial_filename = f"{MODEL_NAME}_{DATA}_TR_{TR_NEG_SAMPLE}_TS_{TS_NEG_SAMPLE}"
 
-    stats_filename = f"LP_stats/Interpreted_Stats/LP_pred_scores_{MODEL_NAME}_{EVAL_MODE}.csv"
-    stats_filename = f"{partial_path}/{MODEL_NAME}/DLP_MAR_{MODEL_NAME}.csv"
+    stats_filename = f"{partial_path}/DLP_MAR_{MODEL_NAME}_{LP_MODE}.csv"
+    stats_filename_avg = f"{partial_path}/DLP_MAR_{MODEL_NAME}_{LP_MODE}_avg.csv"
 
     print("="*150)
     print(f"INFO: METHOD: {MODEL_NAME}, DATA: {DATA}, N_RUNS: {N_RUNS}, LP_MODE: {LP_MODE}")
     print("="*150)
 
     # calculate MAR for the EXHaustive evaluation of dynamic link prediction task
+    node_features, edge_features, full_data, train_data, val_data, test_data, \
+           new_node_val_data, new_node_test_data = get_data(DATA, args, logger=None, verbose=False)
+    invoke_stats_generation(partial_path, partial_filename, stats_filename, full_data, MODEL_NAME, DATA, 
+                            LP_MODE, N_RUNS, TR_NEG_SAMPLE, TS_NEG_SAMPLE, NUM_SNAPSHOTS)
 
+    # generate average stats as well...
+    gen_avg_perf(stats_filename, stats_filename_avg, DATA, LP_MODE, TR_NEG_SAMPLE, TS_NEG_SAMPLE)
 
 
 
