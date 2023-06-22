@@ -26,7 +26,7 @@ For the transductive dynamic link prediction, the distribution of different type
 
 | <p align="center"><img src="figures/test_dist_STD_Hist_trans.png" width="55%"> |
 :-------------------------:|
-	STD – HIST – transductive
+STD – HIST – transductive
 
 <!-- | <p align="center"><img src="figures/test_dist_STD_Hist_trans.png" width="50%"> | <span style="color:black">**NA**</span>
 :-------------------------:|:-------------------------:	
